@@ -8,7 +8,6 @@ Nome: João Quintella do Couto               Matrícula: 2010798
 
 import java.security.*;
 import javax.crypto.*;
-import java.util.*;
 
 public class MySignature{
     
@@ -16,7 +15,10 @@ public class MySignature{
     private PublicKey publickey;
     private MessageDigest messagedigest;
     private Cipher cipher;
-    private byte[] data; 
+    private byte[] data;
+    
+    private String digestAlgorithm;
+    private String keyAlgorithm;
     
     public static MySignature getInstance(String args) throws Exception {
         
@@ -43,13 +45,19 @@ public class MySignature{
         
         MySignature instance = new MySignature();
         instance.messagedigest = MessageDigest.getInstance(digest_alg);
-        instance.cipher = Cipher.getInstance(key_alg + "ECB/PKCS1Padding");
+        instance.cipher = Cipher.getInstance(key_alg + "/ECB/PKCS1Padding");
+
+        instance.digestAlgorithm = digest_alg;
+        instance.keyAlgorithm = key_alg;
         
         return instance; 
     }
+
+    public String getDigestAlgorithm() { return this.digestAlgorithm; }
+    public String getKeyAlgorithm() { return this.keyAlgorithm; }
     
-    public void initSign(PrivateKey private_key){
-        this.privatekey = private_key;
+    public void initSign(PublicKey public_key){
+        this.publickey = public_key;
     }
     
     public void update(byte[] input_data){
@@ -57,10 +65,18 @@ public class MySignature{
     }
     
     public byte[] sign() throws Exception{
-        
+        System.out.println("Start generating message digest");
         byte[] digest = this.messagedigest.digest(this.data);
+
+        StringBuffer buf = new StringBuffer();
+        for(int i = 0; i < digest.length; i++) {
+            String hex = Integer.toHexString(0x0100 + (digest[i] & 0x00FF)).substring(1);
+            buf.append((hex.length() < 2 ? "0" : "") + hex);
+        }
+        System.out.println("Finish generating message digest:");
+        System.out.println(buf.toString());
         
-        this.cipher.init(Cipher.ENCRYPT_MODE, this.privatekey);
+        this.cipher.init(Cipher.ENCRYPT_MODE, this.publickey);
         byte[] encrypted_data = this.cipher.doFinal(digest);
         
         this.data = null; 
@@ -68,17 +84,27 @@ public class MySignature{
         return encrypted_data; 
     }
     
-    public void initVerify(PublicKey public_key){
-        this.publickey = public_key;
+    public void initVerify(PrivateKey private_key){
+        this.privatekey = private_key;
     }
     
     public boolean verify(byte[] signature) throws Exception{
         
-        byte[] digest = this.messagedigest.digest(this.data);
 
-        this.cipher.init(Cipher.DECRYPT_MODE, this.publickey);
+        System.out.println("\nStart decryption");
+        this.cipher.init(Cipher.DECRYPT_MODE, this.privatekey);
         byte[] decrypted_data = this.cipher.doFinal(signature);
+
+        StringBuffer buf = new StringBuffer();
+        for(int i = 0; i < decrypted_data.length; i++) {
+            String hex = Integer.toHexString(0x0100 + (decrypted_data[i] & 0x00FF)).substring(1);
+            buf.append((hex.length() < 2 ? "0" : "") + hex);
+        }
+        System.out.println("Finish decryption:");
+        System.out.println(buf.toString());
         
+        System.out.println("\nVerifying digest");
+        byte[] digest = this.messagedigest.digest(this.data);
         if(digest.length == decrypted_data.length){
             for(int i=0; i<digest.length; i++){
               if(digest[i] != decrypted_data[i]){
