@@ -51,7 +51,7 @@ public class MySignatureTest {
         // inicializando signature
         System.out.println("\nStart encryption");
         signature.update(unsigned_data);
-        signature.initSign(key.getPublic());
+        signature.initSign(key.getPrivate());
 
         // assinando
         byte[] signed_data = signature.sign();
@@ -69,7 +69,7 @@ public class MySignatureTest {
 
         // verificando
         signature.update(unsigned_data);
-        signature.initVerify(key.getPrivate());
+        signature.initVerify(key.getPublic());
         boolean isSignatureLegit = signature.verify(signed_data);
 
         if (isSignatureLegit) System.out.println("Signature is legitimate");

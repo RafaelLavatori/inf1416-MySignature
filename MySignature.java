@@ -22,6 +22,15 @@ public class MySignature{
     
     public static MySignature getInstance(String args) throws Exception {
         
+        if (!args.equals("MD5withRSA") &&
+                !args.equals("SHA1withRSA") &&
+                !args.equals("SHA256withRSA") &&
+                !args.equals("SHA256withECDSA") &&
+                !args.equals("SHA512withRSA")) {
+            System.err.println("Método de assinatura inválido\nMétodos suportados: MD5withRSA, SHA1withRSA, SHA256withRSA, SHA256withECDSA, SHA512withRSA");
+            System.exit(3);
+        }
+        
         String[] signature_pattern = args.split("with");
         if (signature_pattern.length != 2) {
             throw new Exception("Invalid Signature Pattern");
@@ -29,19 +38,6 @@ public class MySignature{
         
         String digest_alg = signature_pattern[0];
         String key_alg = signature_pattern[1];
-        
-        if (
-            (!digest_alg.equals("MD5") &&
-                !digest_alg.equals("SHA1") &&
-                !digest_alg.equals("SHA256") &&
-                !digest_alg.equals("SHA512") &&
-                !key_alg.equals("RSA")
-            ) &&
-            (!digest_alg.equals("SHA256") &&
-                !key_alg.equals("ECDSA"))
-        ) {
-            throw new Exception("Invalid Signature Pattern");
-        }
         
         MySignature instance = new MySignature();
         instance.messagedigest = MessageDigest.getInstance(digest_alg);
@@ -56,8 +52,8 @@ public class MySignature{
     public String getDigestAlgorithm() { return this.digestAlgorithm; }
     public String getKeyAlgorithm() { return this.keyAlgorithm; }
     
-    public void initSign(PublicKey public_key){
-        this.publickey = public_key;
+    public void initSign(PrivateKey private_key){
+        this.privatekey = private_key;
     }
     
     public void update(byte[] input_data){
@@ -76,7 +72,7 @@ public class MySignature{
         System.out.println("Finish generating message digest:");
         System.out.println(buf.toString());
         
-        this.cipher.init(Cipher.ENCRYPT_MODE, this.publickey);
+        this.cipher.init(Cipher.ENCRYPT_MODE, this.privatekey);
         byte[] encrypted_data = this.cipher.doFinal(digest);
         
         this.data = null; 
@@ -84,15 +80,15 @@ public class MySignature{
         return encrypted_data; 
     }
     
-    public void initVerify(PrivateKey private_key){
-        this.privatekey = private_key;
+    public void initVerify(PublicKey public_key){
+        this.publickey = public_key;
     }
     
     public boolean verify(byte[] signature) throws Exception{
         
 
         System.out.println("\nStart decryption");
-        this.cipher.init(Cipher.DECRYPT_MODE, this.privatekey);
+        this.cipher.init(Cipher.DECRYPT_MODE, this.publickey);
         byte[] decrypted_data = this.cipher.doFinal(signature);
 
         StringBuffer buf = new StringBuffer();
